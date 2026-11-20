@@ -82,7 +82,7 @@ The rules contain no IP addresses on purpose. Those are perishable and belong in
 ## Validation
 
 ```
-pip install -r requirements-ci.txt
+pip install -r requirements-test.txt
 python tools/validate_rules.py
 ```
 
