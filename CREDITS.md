@@ -30,7 +30,7 @@ The attack chain these rules target was published by Google Threat Intelligence 
 | P7 | Mandiant, vcsa-hardening-tool (Apache-2.0): https://github.com/mandiant/vcsa-hardening-tool | Default-deny iptables and shell logging on the VCSA |
 | P8 | IBM Community, detecting Golden SAML in QRadar: https://community.ibm.com/community/user/blogs/mutaz-alsallal1/2021/01/12/detecting-golden-saml-attack-in-qradar ; Sygnia on Golden SAML: https://sygnia.co/?p=1488 | Golden SAML detection by correlating AD FS issuance with sign-ins (AD FS, not vCenter) |
 | P9 | US patents titled on detecting Golden SAML or SAML forgery: https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11818150 , https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12095785 , https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12598197 | Titles from search results only, not read. A freedom-to-operate question for counsel if a commercial service is built on this method, not a bar to open work |
-| P10 | Octopus Deploy, Argo CD git drift detection: https://octopus.com/docs/argo-cd/live-object-status/git-drift-detection | Live state compared with declared state |
+| P10 | Argo CD documentation: https://argo-cd.readthedocs.io/en/stable/ | Compares the live state against the desired target state in Git |
 | P11 | NIST SP 800-207, Zero Trust Architecture: https://csrc.nist.gov/pubs/sp/800/207/final | Policy decision and enforcement points |
 
 Further rule references are listed in each rule's `references` field.

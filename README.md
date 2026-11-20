@@ -20,7 +20,7 @@ In GTIG's account of the ARMORY CASTLE intrusion (source S9 in `CREDITS.md`), ne
 - a new SSO administrator and a Global Administrator grant;
 - SAML assertions forged with the stolen STS signing key;
 - SSH switched on through `PUT /rest/appliance/access/ssh` on TCP 5480, then off again;
-- ESXi Host Client logins as `vpxuser`, then SSH as root, and a key added to root's `authorized_keys` (with WinSCP, per GTIG);
+- ESXi Host Client logins as `vpxuser`, SSH logins as root, and a key added to root's `authorized_keys` (with WinSCP, per GTIG);
 - NTDS.dit and registry hives read out of virtual disk files at the datastore layer;
 - a backdoor on the appliance with Slack for command and control.
 
@@ -74,7 +74,7 @@ The rules contain no IP addresses on purpose. Those are perishable and belong in
 
 **Known open issues.**
 
-- **`esxi_root_authorized_keys_modified`:** WinSCP leaves no shell command line, so file-integrity monitoring of `/etc/ssh/keys-root/authorized_keys` is the stronger control.
+- **`esxi_root_authorized_keys_modified`:** GTIG says the key was added with WinSCP, and a file transfer need not leave a shell command line, so file-integrity monitoring of `/etc/ssh/keys-root/authorized_keys` is the stronger control.
 - **`esxi_vmfs_browser_hidden_staging`:** the `/.a` substring is broad, and the scp selection should be split out of the critical rule.
 - **`vcsa_gdb_suid_env_privesc`:** the chmod selection will not fire on GTIG's base64 variant.
 - **`vcenter_sso_new_admin_global_admin`:** this rule is not deployable until real event text replaces its placeholder strings.
