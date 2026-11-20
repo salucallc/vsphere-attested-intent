@@ -1,0 +1,32 @@
+# DRAFT. PLANTED DEFECT (missing the untested mark), must be rejected. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: Zeek ssh.log. In ssh.log the server field is the software string, with or without the SSH-2.0- prefix: verify. A Suricata or other NDR pipeline must map the same two ideas. Sensors must see VCSA traffic, which is often east-west and not mirrored.
+# Logic summary: Banner substring pulsesecure_, or an SSH session identified on 53 or 33992.
+# Known false positives: Genuine Pulse Secure strings.
+# Test idea: Run a Dropbear with a custom banner on port 53 in a lab and confirm the Zeek record.
+title: SSH Server Banner pulsesecure on Management Network
+id: 80f3b48a-88d9-4f79-aefe-e38d3b57e2c4
+status: experimental
+description: >-
+    Detects the SSH server software string SSH-2.0-pulsesecure_ (BEARBONES uses SSH-2.0-pulsesecure_23345) in network metadata. BEARBONES is a backdoored Dropbear listening on TCP 53 and 33992, so SSH on those ports is also flagged. The banner is a perishable IOC.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.command-and-control
+    - attack.t1571
+logsource:
+    product: zeek
+    service: ssh
+detection:
+    selection_banner:
+        server|contains: 'pulsesecure_'
+    selection_port:
+        id.resp_p:
+            - 53
+            - 33992
+    condition: 1 of selection_*
+falsepositives:
+    - Real Pulse Secure appliances if any report a similar string (verify with a clean capture)
+    - SSH on port 53 as a deliberate firewall evasion by an admin (still an alert)
+level: high

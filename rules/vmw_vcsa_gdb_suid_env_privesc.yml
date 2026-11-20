@@ -1,0 +1,40 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: Linux process creation on the VCSA: needs auditd EXECVE records or the Mandiant remote bash-history and syslog forwarding (P7). Without one of those this rule has no data (verify what the VCSA forwards by default).
+# Logic summary: gdb attached by pid with a command file, OR the base64 to /tmp/gdb_file staging, OR chmod u+s on /bin/env.
+# Known false positives: Legitimate gdb use on an appliance.
+# Test idea: On a lab Photon host run gdb -pid <pid> --command=/tmp/x with a harmless file and confirm the EXECVE record maps to Image and CommandLine.
+title: VCSA Local Root via gdb Setting SUID on /bin/env
+id: 92edd0cd-88e4-4bec-8b68-59e0e87ddbc9
+status: experimental
+description: >-
+    Detects the local privilege escalation seen in the GTIG chain: a base64-decoded command file fed to gdb attached to a running process, with chmod u+s on /bin/env. Also matches the decoded command text where command lines are captured.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.privilege-escalation
+    - attack.t1548.001
+    - attack.t1059.004
+logsource:
+    category: process_creation
+    product: linux
+detection:
+    selection_gdb:
+        Image|endswith: '/gdb'
+        CommandLine|contains|all:
+            - '-pid'
+            - '--command='
+    selection_b64:
+        CommandLine|contains|all:
+            - 'base64 -d'
+            - '/tmp/gdb_file'
+    selection_chmod:
+        CommandLine|contains|all:
+            - 'chmod u+s'
+            - '/bin/env'
+    condition: 1 of selection_*
+falsepositives:
+    - Engineer debugging a service on a VCSA with gdb (rare, and still worth a ticket)
+    - Support-guided troubleshooting sessions
+level: high

@@ -1,0 +1,36 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: ESXi /var/log/shell.log (named in the Mandiant UNC3944 guide) forwarded by syslog. The ESXi path of the root key file is believed to be /etc/ssh/keys-root/authorized_keys: verify. The message field is the pipeline placeholder for the shell.log command text: verify format.
+# Logic summary: A shell command mentioning authorized_keys together with a write operator.
+# Known false positives: Planned key installs.
+# Test idea: On a lab ESXi, append a test key via the shell and confirm shell.log records the command text.
+title: ESXi Root SSH authorized_keys Modified from Shell
+id: f69f0def-277a-4ae5-a7b1-bb99ebdd7b77
+status: experimental
+description: >-
+    Detects shell commands on an ESXi host that write to the root SSH authorized keys file. GTIG saw an SSH key added to root authorized_keys on ESXi after vpxuser and root access were obtained from vCenter.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+    - https://research.splunk.com/stories/esxi_post_compromise/
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.persistence
+    - attack.t1098.004
+logsource:
+    product: vmware
+    service: esxi_shell
+detection:
+    selection_file:
+        message|contains: 'authorized_keys'
+    selection_write:
+        message|contains:
+            - '>>'
+            - ' > '
+            - 'tee '
+            - 'vi '
+            - 'sed -i'
+    condition: all of selection_*
+falsepositives:
+    - Admin installing a key for planned access
+    - Host profile or automation applying keys
+level: high

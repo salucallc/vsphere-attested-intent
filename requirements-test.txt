@@ -1,0 +1,3 @@
+# CI toolchain for tools/validate_rules.py and its tests. Pinned; bump deliberately.
+pysigma==2.1.0
+pytest==9.0.3

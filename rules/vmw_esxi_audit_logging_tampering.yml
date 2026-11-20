@@ -1,0 +1,45 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: ESXi shell.log. The esxcli subcommand names above (system syslog config set, system auditrecords) are from memory and the SigmaHQ syslog_config_change sibling (P3): verify against esxcli on a lab host. The vmsyslogd init script name: verify.
+# Logic summary: Commands that change syslog configuration, stop the syslog daemon or touch audit records.
+# Known false positives: Planned syslog migrations and build automation.
+# ATT&CK (fixed 2026-11-19): attack.defense-evasion and attack.t1562.001 are retired in ATT&CK v19.2 as bundled with pySigma 2.1.0. Replaced with defense-impairment (TA0112) and T1685.004 Disable or Modify Linux Audit System Log, from that bundled data; verify on attack.mitre.org.
+# Test idea: On a lab ESXi, run each command and compare with shell.log text. The rule only works if shell.log reaches the SIEM before the attacker changes it, so ship it remotely first.
+title: ESXi Syslog or Audit Logging Configuration Tampering
+id: 8492d930-9d7c-4c6d-b23b-5202b3eb2830
+status: experimental
+description: >-
+    Detects commands that stop, redirect or disable ESXi remote syslog and audit record handling. Context: CVE-2026-41709 (ESX insufficient logging, CVSS 2.7) was used as a zero-day by Warp Panda to reduce audit trail visibility and is now in CISA KEV. Blinding logging before acting is a recurring pattern. This does not detect 41709 itself, only the behaviour around it.
+references:
+    - https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/38017
+    - https://www.cisa.gov/news-events/alerts/2026/10/28/cisa-adds-two-known-exploited-vulnerabilities-catalog
+    - https://thehackernews.com/2026/10/china-linked-hackers-exploited-vmware.html
+    - https://research.splunk.com/stories/esxi_post_compromise/
+    - https://detection.fyi/sigmahq/sigma/linux/process_creation/proc_creation_lnx_esxcli_vm_discovery/
+    - https://cloud.google.com/blog/topics/threat-intelligence/defending-vsphere-from-unc3944/
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.defense-impairment
+    - attack.t1685.004
+logsource:
+    product: vmware
+    service: esxi_shell
+detection:
+    selection_syslog_cfg:
+        message|contains|all:
+            - 'esxcli'
+            - 'system syslog config set'
+    selection_service_stop:
+        message|contains|all:
+            - 'vmsyslogd'
+            - 'stop'
+    selection_auditrecords:
+        message|contains|all:
+            - 'esxcli'
+            - 'auditrecords'
+    condition: 1 of selection_*
+falsepositives:
+    - Planned syslog server migration
+    - Host build automation setting the syslog loghost
+    - Enabling audit records is legitimate: tune selection_auditrecords to disable operations once the real syntax is verified
+level: medium
