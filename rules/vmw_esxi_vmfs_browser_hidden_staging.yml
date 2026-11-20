@@ -1,0 +1,40 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: ESXi /var/log/shell.log and auth.log forwarded by syslog (UNC). Message field is a placeholder: verify. Also a candidate for a file-integrity listing of unexpected dot-directories at datastore root.
+# Logic summary: Tool name, hidden .a directory path, or scp from a datastore path.
+# Known false positives: selection_scp. The other two are specific to published tooling and perishable.
+# Test idea: In a lab, mkdir a hidden dir under a VMFS volume and scp a file out. Confirm shell.log captures both.
+title: ESXi vmfs_browser.py or Hidden Staging Directory on VMFS
+id: eecf923d-ed3b-49e7-be74-aa0bdf44a2f9
+status: experimental
+description: >-
+    Detects use of the vmfs_browser.py reader and its vmfs-pydist.tar.gz bundle, or a hidden .a directory created under /vmfs/volumes, as in the GTIG chain where domain controller NTDS.dit, SYSTEM and SECURITY hives were read out of guest VMDKs and staged on the datastore for SCP exfiltration. The domain controller guest operating system is never touched, so guest EDR sees nothing.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.credential-access
+    - attack.t1003.003
+    - attack.collection
+    - attack.t1564.001
+logsource:
+    product: vmware
+    service: esxi_shell
+detection:
+    selection_tool:
+        message|contains:
+            - 'vmfs_browser.py'
+            - 'vmfs-pydist'
+    selection_hidden_dir:
+        message|contains|all:
+            - '/vmfs/volumes/'
+            - '/.a'
+    selection_scp:
+        message|contains|all:
+            - 'scp'
+            - '/vmfs/volumes/'
+    condition: 1 of selection_*
+falsepositives:
+    - Admin copying files between datastores with scp (selection_scp is broad, tune by destination)
+    - Third-party backup or forensic tooling on a host
+level: critical

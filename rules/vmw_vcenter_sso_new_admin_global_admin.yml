@@ -1,0 +1,41 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: vCenter SSO, vmdird and STS logs under /var/log/vmware/ (verify exact directories, file names, event wording and field names: message, actor and the matching strings are all placeholders). vCenter events for permission changes in the vpxd event stream may be the better source: verify event type names.
+# Logic summary: An ADMIN GRANT, not any identity event: a principal added to the SSO Administrators group, or a Global Permission with the Administrator role, where the line also names a vsphere.local principal. filter_main_approved is a placeholder for the approved-change join described in the README (change attestation).
+# Fixed 2026-11-19 after the independent check: the old selection_user_create ('user' and 'create') matched almost every SSO and STS line ("created session", "createToken"), so the rule always fired. It is removed. Account creation on its own is left to the change-attestation pseudo-query, because without real event text no string pair separates it from ordinary noise. The rule is still not deployable until the strings are replaced with real event text captured from a lab VCSA.
+# Known false positives: Planned admin changes.
+# Test idea: Create a local SSO user and add it to Administrators in a lab, then read the real log text and replace the placeholder strings. Also confirm the rule stays silent across an hour of ordinary logins.
+title: vCenter SSO Principal Added to Administrators or Granted Global Administrator
+id: 6ddcebac-e9f4-4262-8a0f-8f51ca57f818
+status: experimental
+description: >-
+    Detects a vsphere.local principal being added to the SSO Administrators group, or a Global Permission with the Administrator role. ARMORY CASTLE created a local admin sps-<redacted>@vsphere.local and granted Global Administrator after the vmdir bypass. Any such grant with no approved change record is the alert.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+modified: 2026-11-19
+tags:
+    - attack.persistence
+    - attack.t1098
+logsource:
+    product: vmware
+    service: vcenter_sso
+detection:
+    selection_principal:
+        message|contains: '@vsphere.local'
+    selection_group_add:
+        message|contains|all:
+            - 'Administrators'
+            - 'add'
+    selection_global_perm:
+        message|contains|all:
+            - 'global permission'
+            - 'Administrator'
+    filter_main_approved:
+        actor|startswith: 'svc-change-'
+    condition: selection_principal and (selection_group_add or selection_global_perm) and not filter_main_approved
+falsepositives:
+    - Planned onboarding of administrators
+    - Automated break-glass account provisioning
+    - Product installs adding service solution users to administrative groups
+level: high

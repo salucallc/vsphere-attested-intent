@@ -1,0 +1,41 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: Linux process creation on the VCSA (auditd EXECVE or forwarded shell history). Perishable: names and paths come from one actor report.
+# Logic summary: Image equals a published path, or dbr run in reverse mode on the two published ports.
+# Known false positives: Very low on path match.
+# Test idea: Copy a benign binary to /tmp/123 on a lab host and run it. Confirm the match.
+title: VCSA GTIG ARMORY CASTLE Tool Paths and Banner Flags
+id: 57f63166-3502-4d9c-b9d8-7da065d6f342
+status: experimental
+description: >-
+    Detects execution of binaries at paths GTIG published for ARMORY CASTLE tooling on the VCSA: /tmp/123 (BONESAW), /tmp/sss (SAWSNAKE), /tmp/dbr (BEARBONES, run with -R -p 53 or 33992) and /usr/bin/vmtoolscs (LAZYBONES). File names are cheap to change, so this is a perishable IOC rule, not a behaviour rule.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.execution
+    - attack.t1059.004
+    - attack.t1571
+logsource:
+    category: process_creation
+    product: linux
+detection:
+    selection_paths:
+        Image:
+            - '/tmp/123'
+            - '/tmp/sss'
+            - '/tmp/dbr'
+            - '/usr/bin/vmtoolscs'
+    selection_dbr_ports:
+        Image|endswith: '/dbr'
+        CommandLine|contains|all:
+            - '-R'
+            - '-p'
+        CommandLine|contains:
+            - ' 53'
+            - ' 33992'
+    condition: 1 of selection_*
+falsepositives:
+    - Admin script that happens to use /tmp/123 (unlikely)
+    - A future legitimate vendor binary named vmtoolscs (verify against a clean VCSA)
+level: critical

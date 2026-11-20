@@ -1,0 +1,35 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: raw auditd SYSCALL records on the VCSA, produced by a keyed watch added to the audit rules:
+#   -w /storage/db/vmware-vmdir/data.mdb -p r -k saluca_vmdir_store
+# Auditd on the VCSA may not be enabled by default: verify. Field names type, key and exe follow the SigmaHQ linux auditd convention, verify against the chosen pipeline.
+# Fixed 2026-11-19 after the independent check: the old rule matched the file path (name, on the PATH record) and filtered on exe (on the SYSCALL record). In raw auditd those are separate records joined only by the event id, so the filter never matched and the rule fired on every access, vmdird's own included. The rule now matches the SYSCALL record alone: a watch key stamps the SYSCALL record with key=saluca_vmdir_store, and that same record carries exe, so no record merging is needed. If your pipeline already merges records (auditbeat, laurel), map key and exe to the merged fields.
+# Logic summary: Any read access to data.mdb where the executable is not vmdird, minus a tuned allowlist for backup and support bundle processes.
+# Known false positives: Backups, support bundles, migration.
+# Test idea: On a lab VCSA with the watch rule, cp the file as root and confirm one SYSCALL record carries key=saluca_vmdir_store and exe=/usr/bin/cp. Restart vmdird and measure how many keyed records vmdird itself produces (LMDB uses mmap, so expect opens, not reads).
+title: VCSA vmdir data.mdb Read by a Process Other Than vmdird
+id: f9f53f88-e928-4447-a693-bad2e46f4bf9
+status: experimental
+description: >-
+    Detects a file read of /storage/db/vmware-vmdir/data.mdb by anything other than the directory service, using an auditd watch key so the match and the executable filter sit on the same SYSCALL record. BONESAW exfiltrated this file, which holds the SSO store including the STS SAML signing material, and extracted tenant credential keys from a copy of it.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+author: Saluca Labs
+date: 2026-11-19
+modified: 2026-11-19
+tags:
+    - attack.credential-access
+    - attack.t1552.004
+logsource:
+    product: linux
+    service: auditd
+detection:
+    selection:
+        type: 'SYSCALL'
+        key: 'saluca_vmdir_store'
+    filter_main_vmdird:
+        exe|endswith: '/vmdird'
+    condition: selection and not filter_main_vmdird
+falsepositives:
+    - Backup agent or vCenter file-based backup reading the vmdir store
+    - Support bundle collection (vc-support) and vCenter migration tooling
+level: high

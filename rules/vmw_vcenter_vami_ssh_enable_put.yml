@@ -1,0 +1,31 @@
+# UNTESTED DRAFT, untested in a lab. Saluca Labs open work. Not validated against live data. Do not deploy before a lab test.
+# Data source: VCSA VAMI or reverse proxy access log on TCP 5480 (verify log path and field names: http_method, uri_path, src_ip are placeholders for the pipeline).
+# Logic summary: Any PUT to the SSH access endpoint. Pair with the SSH-disable PUT close in time (enable then disable inside one hour is the GTIG pattern).
+# Known false positives: Planned maintenance, automation.
+# ATT&CK (fixed 2026-11-19): T1021.004 SSH maps to lateral-movement, not persistence, in ATT&CK v19.2; the tactic tag now matches the technique.
+# Test idea: In a lab VCSA, toggle SSH from VAMI and confirm the access-log line parses into the pipeline fields. Verify whether the log carries the request body or only the path.
+title: vCenter VAMI API SSH Enablement via PUT
+id: ec1808da-29c6-443f-a6d8-ef180c480de6
+status: experimental
+description: >-
+    Detects an HTTP PUT to the vCenter Server Appliance VAMI REST path /rest/appliance/access/ssh, the call ARMORY CASTLE used on TCP 5480 to turn SSH on before taking the vCenter master crypto key and PostgreSQL credentials, then turned SSH off again. Legitimate administrators use the same call, so the alert is the change that has no matching approved change record.
+references:
+    - https://cloud.google.com/blog/topics/threat-intelligence/armory-castle-exploits-vsphere
+    - https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39495
+author: Saluca Labs
+date: 2026-11-19
+tags:
+    - attack.lateral-movement
+    - attack.t1021.004
+logsource:
+    product: vmware
+    service: vami_access
+detection:
+    selection:
+        http_method: 'PUT'
+        uri_path|endswith: '/rest/appliance/access/ssh'
+    condition: selection
+falsepositives:
+    - Administrator enabling SSH for planned VCSA maintenance or a support session
+    - Automation (Terraform, Ansible, PowerCLI) that toggles appliance SSH
+level: high
